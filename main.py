@@ -3,8 +3,9 @@ import pygame
 import math
 import random
 
-areaRadius = 200
+areaRadius = 380
 areaCenter = pygame.Vector2(400, 400)
+newBallRadius = 20
 
 
 class Ring(pygame.sprite.Sprite):
@@ -12,7 +13,7 @@ class Ring(pygame.sprite.Sprite):
         super().__init__()
         self.radius = radius
         self.position = pygame.Vector2(x, y)
-        self.velocity = pygame.Vector2(2, 2)
+        self.velocity = pygame.Vector2(random.uniform(-2, 2), random.uniform(-2, 2))
 
     def collide_wall(self):
         distance = math.sqrt((self.position.x - 400) ** 2 + (self.position.y - 400) ** 2)
@@ -98,7 +99,9 @@ class Game:
                     sys.exit()
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_SPACE:
-                        self.balls.add(Ring(400, 400, 100))
+                        self.balls.add(Ring(400, 400, newBallRadius))
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    self.balls.add(Ring(event.pos[0], event.pos[1], newBallRadius))
 
             pygame.display.update()
             self.clock.tick(60)

@@ -8,9 +8,27 @@ areaCenter = pygame.Vector2(400, 400)
 newBallRadius = 20
 
 
+def generate_color():
+    """
+    Generates a random vibrant color with reduced chances of being grey or white.
+    This is achieved by ensuring that not all the color components are too close to each other or too high.
+    """
+    while True:
+        r = random.randint(100, 255)
+        g = random.randint(100, 255)
+        b = random.randint(100, 255)
+
+        # Checking if the colors are not too close to each other (which would make them greyish)
+        # and not all of them are too high (which would make them whitish)
+        if abs(r - g) > 30 and abs(r - b) > 30 and abs(g - b) > 30 and not (r > 200 and g > 200 and b > 200):
+            return r, g, b
+
+
 class Ring(pygame.sprite.Sprite):
     def __init__(self, x, y, radius):
         super().__init__()
+        self.colour = pygame.Color(generate_color())
+
         self.radius = radius
         self.position = pygame.Vector2(x, y)
         self.velocity = pygame.Vector2(random.uniform(-2, 2), random.uniform(-2, 2))
@@ -32,8 +50,6 @@ class Ring(pygame.sprite.Sprite):
             # Reflect the ball's velocity
             self.velocity.x -= 2 * dot_product * normal_x
             self.velocity.y -= 2 * dot_product * normal_y
-        else:
-            print("Outside")
 
     def collide_balls(self, game):
         for other in game.balls.sprites():
@@ -70,7 +86,7 @@ class Ring(pygame.sprite.Sprite):
             self.kill()
 
     def draw(self, screen):
-        pygame.draw.circle(screen, "red", self.position, self.radius)
+        pygame.draw.circle(screen, self.colour, self.position, self.radius)
 
 
 class Game:

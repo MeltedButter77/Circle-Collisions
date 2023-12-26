@@ -4,17 +4,19 @@ import math
 import random
 
 # Changeable Values
-screen_width = 1000
+screen_width = 600
 
 wall_bounce_increase = 0
-collide_bounce_increase = 0.7
+collide_bounce_increase = 0
 drag_multiplier = 1
-death_velocity = 20
+death_velocity = 10
 
 angle_ran = 0.01
-balls_collide = False
+balls_collide = True
 
-newBallRadius = 20
+velocity_ran = 2
+
+newBallRadius = 15
 deathColour = (0, 0, 100)
 
 # Dependant & Fixed Values
@@ -53,7 +55,7 @@ class Ball(pygame.sprite.Sprite):
 
         self.radius = radius
         self.position = pygame.Vector2(center[0], center[1])
-        self.velocity = pygame.Vector2(random.uniform(-2, 2), random.uniform(-2, 2))
+        self.velocity = pygame.Vector2(random.uniform(-velocity_ran, velocity_ran), random.uniform(-velocity_ran, velocity_ran))
 
     def collide_wall(self):
         distance = math.sqrt((self.position.x - areaCenter.x) ** 2 + (self.position.y - areaCenter.y) ** 2)
@@ -171,7 +173,7 @@ class Game:
 
             # Handle events
             mouse_buttons = pygame.mouse.get_pressed()
-            if mouse_buttons[0]:
+            if mouse_buttons[2]:
                 Ball(self, pygame.mouse.get_pos(), newBallRadius)
 
             for event in pygame.event.get():

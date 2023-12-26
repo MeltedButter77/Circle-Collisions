@@ -11,10 +11,10 @@ collide_bounce_increase = 0
 drag_multiplier = 1
 death_velocity = 10
 
-angle_ran = 0.01
+angle_random = 0.01
 balls_collide = True
 
-velocity_ran = 2
+velocity_random = 2
 
 newBallRadius = 15
 deathColour = (0, 0, 100)

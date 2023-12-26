@@ -3,22 +3,26 @@ import pygame
 import math
 import random
 
-areaRadius = 380
-areaCenter = pygame.Vector2(400, 400)
-newBallRadius = 20
-deathColour = (0, 0, 100)
-simulation_fps = 60
-fps = 60
-
 # Changeable Values
-wall_bounce_increase = 0.7
-collide_bounce_increase = 0.7
-drag_factor = 1
-max_velocity = 20
+screen_width = 1000
 
-angle_ran = 0
+wall_bounce_increase = 0
+collide_bounce_increase = 0.7
+drag_multiplier = 1
+death_velocity = 20
+
+angle_ran = 0.01
 balls_collide = False
 
+newBallRadius = 20
+deathColour = (0, 0, 100)
+
+# Dependant & Fixed Values
+window_size = pygame.Vector2(screen_width, screen_width)
+areaRadius = window_size[0] / 2 - 20
+areaCenter = pygame.Vector2(window_size*0.5)
+simulation_fps = 60
+fps = 60
 
 def generate_color():
     """
@@ -52,7 +56,7 @@ class Ball(pygame.sprite.Sprite):
         self.velocity = pygame.Vector2(random.uniform(-2, 2), random.uniform(-2, 2))
 
     def collide_wall(self):
-        distance = math.sqrt((self.position.x - 400) ** 2 + (self.position.y - 400) ** 2)
+        distance = math.sqrt((self.position.x - areaCenter.x) ** 2 + (self.position.y - areaCenter.y) ** 2)
         if distance + self.radius > areaRadius:
 
             angle = math.atan2(self.position.y - areaCenter.y, self.position.x - areaCenter.x)
@@ -111,7 +115,7 @@ class Ball(pygame.sprite.Sprite):
                     self.velocity += increase
 
     def drag(self):
-        self.velocity *= drag_factor
+        self.velocity *= drag_multiplier
 
     def update(self, game, *args, **kwargs):
         self.position += self.velocity
@@ -123,7 +127,7 @@ class Ball(pygame.sprite.Sprite):
         if self.radius > areaRadius:
             self.kill()
 
-        if self.velocity.length() > max_velocity:
+        if self.velocity.length() > death_velocity:
             game.collision_balls.remove(self)
             self.colour = deathColour
 
@@ -135,8 +139,8 @@ class Game:
     def __init__(self):
         # Pygame Setup
         pygame.init()
-        pygame.display.set_caption("Platformer!")
-        self.screen = pygame.display.set_mode((800, 800))
+        pygame.display.set_caption("Game")
+        self.screen = pygame.display.set_mode(window_size)
         self.clock = pygame.time.Clock()
         self.last_update_time = pygame.time.get_ticks()
         self.update_interval = 1/simulation_fps
@@ -158,7 +162,7 @@ class Game:
             # Draw sequence
             self.screen.fill((0, 0, 100))
 
-            pygame.draw.circle(self.screen, "blue", (400, 400), areaRadius)
+            pygame.draw.circle(self.screen, "blue", areaCenter, areaRadius)
 
             for ball in [ball for ball in self.all_balls if ball not in self.collision_balls]:
                 ball.draw(self.screen)
@@ -166,6 +170,10 @@ class Game:
                 ball.draw(self.screen)
 
             # Handle events
+            mouse_buttons = pygame.mouse.get_pressed()
+            if mouse_buttons[0]:
+                Ball(self, pygame.mouse.get_pos(), newBallRadius)
+
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
@@ -180,5 +188,9 @@ class Game:
             # small delay to reduce CPU usage
             pygame.time.delay(1)
             self.clock.tick(fps)
+
+            # Display fps
+            real_fps = self.clock.get_fps()
+            pygame.display.set_caption(f"Current FPS: {real_fps:.2f}")
 
 Game().run()

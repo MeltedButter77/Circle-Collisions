@@ -7,6 +7,12 @@ areaRadius = 380
 areaCenter = pygame.Vector2(400, 400)
 newBallRadius = 20
 
+# Changeable Values
+wall_bounce_increase = 0.7
+collide_bounce_increase = 0.7
+max_velocity = 20
+
+deathColour = (0, 0, 100)
 
 def generate_color():
     """
@@ -24,13 +30,16 @@ def generate_color():
             return r, g, b
 
 
-class Ring(pygame.sprite.Sprite):
-    def __init__(self, x, y, radius):
+class Ball(pygame.sprite.Sprite):
+    def __init__(self, game, center, radius):
         super().__init__()
         self.colour = pygame.Color(generate_color())
 
+        game.all_balls.add(self)
+        game.collision_balls.add(self)
+
         self.radius = radius
-        self.position = pygame.Vector2(x, y)
+        self.position = pygame.Vector2(center[0], center[1])
         self.velocity = pygame.Vector2(random.uniform(-2, 2), random.uniform(-2, 2))
 
     def collide_wall(self):
@@ -51,8 +60,12 @@ class Ring(pygame.sprite.Sprite):
             self.velocity.x -= 2 * dot_product * normal_x
             self.velocity.y -= 2 * dot_product * normal_y
 
+            velocity_direction = self.velocity.normalize()
+            increase = pygame.Vector2(velocity_direction.x, velocity_direction.y) * wall_bounce_increase
+            self.velocity += increase
+
     def collide_balls(self, game):
-        for other in game.balls.sprites():
+        for other in game.collision_balls.sprites():
             if self == other:
                 continue
 
@@ -75,15 +88,27 @@ class Ring(pygame.sprite.Sprite):
                 self.velocity.reflect_ip(normal)
                 other.velocity.reflect_ip(normal)
 
+                # increase velocity
+                velocity_direction = self.velocity.normalize()
+                increase = pygame.Vector2(velocity_direction.x, velocity_direction.y) * collide_bounce_increase
+                self.velocity += increase
+
+    def drag(self):
+        pass
+
     def update(self, game, *args, **kwargs):
         self.position += self.velocity
 
         self.collide_wall()
         self.collide_balls(game)
+        self.drag()
 
         if self.radius > areaRadius:
-            print("KIL")
             self.kill()
+
+        if self.velocity.length() > max_velocity:
+            game.collision_balls.remove(self)
+            self.colour = deathColour
 
     def draw(self, screen):
         pygame.draw.circle(screen, self.colour, self.position, self.radius)
@@ -98,16 +123,18 @@ class Game:
         self.clock = pygame.time.Clock()
 
         # Sprite Groups
-        self.balls = pygame.sprite.Group()
+        self.collision_balls = pygame.sprite.Group()
+        self.all_balls = pygame.sprite.Group()
 
     def run(self):
         while True:
             self.screen.fill((0, 0, 100))
 
             pygame.draw.circle(self.screen, "blue", (400, 400), areaRadius)
-            for ring in self.balls:
-                ring.update(self)
-                ring.draw(self.screen)
+
+            self.collision_balls.update(self)
+            for ball in self.all_balls:
+                ball.draw(self.screen)
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -115,9 +142,9 @@ class Game:
                     sys.exit()
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_SPACE:
-                        self.balls.add(Ring(400, 400, newBallRadius))
+                        Ball(self, (400, 400), newBallRadius)
                 if event.type == pygame.MOUSEBUTTONDOWN:
-                    self.balls.add(Ring(event.pos[0], event.pos[1], newBallRadius))
+                    Ball(self, event.pos, newBallRadius)
 
             pygame.display.update()
             self.clock.tick(60)

@@ -26,6 +26,7 @@ areaCenter = pygame.Vector2(window_size*0.5)
 simulation_fps = 60
 fps = 60
 
+
 def generate_color():
     """
     Generates a random vibrant color with reduced chances of being grey or white.
@@ -55,14 +56,14 @@ class Ball(pygame.sprite.Sprite):
 
         self.radius = radius
         self.position = pygame.Vector2(center[0], center[1])
-        self.velocity = pygame.Vector2(random.uniform(-velocity_ran, velocity_ran), random.uniform(-velocity_ran, velocity_ran))
+        self.velocity = pygame.Vector2(random.uniform(-velocity_random, velocity_random), random.uniform(-velocity_random, velocity_random))
 
     def collide_wall(self):
         distance = math.sqrt((self.position.x - areaCenter.x) ** 2 + (self.position.y - areaCenter.y) ** 2)
         if distance + self.radius > areaRadius:
 
             angle = math.atan2(self.position.y - areaCenter.y, self.position.x - areaCenter.x)
-            angle += random.uniform(-angle_ran, angle_ran)  # Adjust the range as needed
+            angle += random.uniform(-angle_random, angle_random)  # Adjust the range as needed
 
             # Calculate the normal vector components
             normal_x = math.cos(angle)

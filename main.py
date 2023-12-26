@@ -6,13 +6,19 @@ import random
 areaRadius = 380
 areaCenter = pygame.Vector2(400, 400)
 newBallRadius = 20
+deathColour = (0, 0, 100)
+simulation_fps = 60
+fps = 60
 
 # Changeable Values
 wall_bounce_increase = 0.7
 collide_bounce_increase = 0.7
+drag_factor = 1
 max_velocity = 20
 
-deathColour = (0, 0, 100)
+angle_ran = 0
+balls_collide = False
+
 
 def generate_color():
     """
@@ -38,6 +44,9 @@ class Ball(pygame.sprite.Sprite):
         game.all_balls.add(self)
         game.collision_balls.add(self)
 
+        self.last_collision_time = 0
+        self.collision_cooldown = 50  # cooldown time in milliseconds
+
         self.radius = radius
         self.position = pygame.Vector2(center[0], center[1])
         self.velocity = pygame.Vector2(random.uniform(-2, 2), random.uniform(-2, 2))
@@ -47,7 +56,7 @@ class Ball(pygame.sprite.Sprite):
         if distance + self.radius > areaRadius:
 
             angle = math.atan2(self.position.y - areaCenter.y, self.position.x - areaCenter.x)
-            angle += random.uniform(-0.1, 0.1)  # Adjust the range as needed
+            angle += random.uniform(-angle_ran, angle_ran)  # Adjust the range as needed
 
             # Calculate the normal vector components
             normal_x = math.cos(angle)
@@ -65,6 +74,11 @@ class Ball(pygame.sprite.Sprite):
             self.velocity += increase
 
     def collide_balls(self, game):
+        if not balls_collide:
+            return
+
+        current_time = pygame.time.get_ticks()
+
         for other in game.collision_balls.sprites():
             if self == other:
                 continue
@@ -74,27 +88,30 @@ class Ball(pygame.sprite.Sprite):
 
             # Check if the distance is less than the sum of the radii (collision detected)
             if distance < self.radius + other.radius:
-                # Calculate the overlap
-                overlap = self.radius + other.radius - distance
+                # Check if the cooldown period has passed
+                if current_time - self.last_collision_time > self.collision_cooldown:
+                    self.last_collision_time = current_time
+                    # Calculate the overlap
+                    overlap = self.radius + other.radius - distance
 
-                # Calculate the normal vector
-                normal = (self.position - other.position).normalize()
+                    # Calculate the normal vector
+                    normal = (self.position - other.position).normalize()
 
-                # Adjust positions based on the overlap
-                self.position += normal * (overlap / 2)
-                other.position -= normal * (overlap / 2)
+                    # Adjust positions based on the overlap
+                    self.position += normal * (overlap / 2)
+                    other.position -= normal * (overlap / 2)
 
-                # Reflect the velocities
-                self.velocity.reflect_ip(normal)
-                other.velocity.reflect_ip(normal)
+                    # Reflect the velocities
+                    self.velocity.reflect_ip(normal)
+                    other.velocity.reflect_ip(normal)
 
-                # increase velocity
-                velocity_direction = self.velocity.normalize()
-                increase = pygame.Vector2(velocity_direction.x, velocity_direction.y) * collide_bounce_increase
-                self.velocity += increase
+                    # increase velocity
+                    velocity_direction = self.velocity.normalize()
+                    increase = pygame.Vector2(velocity_direction.x, velocity_direction.y) * collide_bounce_increase
+                    self.velocity += increase
 
     def drag(self):
-        pass
+        self.velocity *= drag_factor
 
     def update(self, game, *args, **kwargs):
         self.position += self.velocity
@@ -121,6 +138,8 @@ class Game:
         pygame.display.set_caption("Platformer!")
         self.screen = pygame.display.set_mode((800, 800))
         self.clock = pygame.time.Clock()
+        self.last_update_time = pygame.time.get_ticks()
+        self.update_interval = 1/simulation_fps
 
         # Sprite Groups
         self.collision_balls = pygame.sprite.Group()
@@ -128,14 +147,25 @@ class Game:
 
     def run(self):
         while True:
+            current_time = pygame.time.get_ticks()
+
+            # This is consistent time between runs
+            if current_time - self.last_update_time >= self.update_interval:
+                self.last_update_time = current_time
+
+                self.collision_balls.update(self)
+
+            # Draw sequence
             self.screen.fill((0, 0, 100))
 
             pygame.draw.circle(self.screen, "blue", (400, 400), areaRadius)
 
-            self.collision_balls.update(self)
-            for ball in self.all_balls:
+            for ball in [ball for ball in self.all_balls if ball not in self.collision_balls]:
+                ball.draw(self.screen)
+            for ball in self.collision_balls:
                 ball.draw(self.screen)
 
+            # Handle events
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
@@ -147,7 +177,8 @@ class Game:
                     Ball(self, event.pos, newBallRadius)
 
             pygame.display.update()
-            self.clock.tick(60)
-
+            # small delay to reduce CPU usage
+            pygame.time.delay(1)
+            self.clock.tick(fps)
 
 Game().run()
